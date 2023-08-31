@@ -2,6 +2,7 @@ import requests
 import base64
 import datetime
 import os
+import urllib3
 import re
 import sys
 
@@ -103,6 +104,7 @@ while True:
     print()
     print("--------------")
     # api拼接
+    urllib3.disable_warnings()
     whois_api = "https://v.api.aa1.cn/api/whois/index.php?domain=" + domain
     # 请求api
     whois_response = requests.get(whois_api, verify=False)
