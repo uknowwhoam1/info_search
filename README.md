@@ -5,3 +5,5 @@
 使用了GPL开源协议
 
 Hunter奇安信的api_key存放在key.txt中！
+
+自带字典fuzz.txt可以替换内容，但请不要修改文件名！
