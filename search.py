@@ -1,32 +1,44 @@
-import requests
+import aiohttp
+import asyncio
 import base64
 import datetime
 import os
 import urllib3
 import re
 import sys
+import requests
 
-# 获取当时时间
 time_today = datetime.datetime.now().strftime('%Y-%m-%d')
 
-while True:
+
+async def check_directory(session, url):
+    try:
+        qheaders = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64)", "Connection": "close"}
+        async with session.get('https://' + url, headers=qheaders) as response:
+            if response.status == 200:
+                print("[+]目录存在：" + url)
+    except aiohttp.ClientError as e:
+        print("[-]Error 扫描错误:", str(e))
+
+
+async def main():
     # 域名获取
     domain = input("域名> ")
-    
+
     if domain == "":
         print("[-]Error 域名不能为空!")
-        continue
-    
+        return
+
     print(domain)
     lock_on = input("域名是否正确？(y/n) > ")
 
     if lock_on.lower() != 'y':
-        continue
+        return
 
     # key获取
     with open('key.txt', 'r', encoding='utf-8') as f:
         key_data = f.readline()
-    
+
     # api搜索
     search_key_word = "domain.suffix=" + '"' + domain + '"'  # 奇安信搜索语法
     search_key_word = base64.urlsafe_b64encode(search_key_word.encode("utf-8"))  # 按照文档方式加密
@@ -35,17 +47,18 @@ while True:
 
     if page == "":
         print("[-]Error 页数不能为空!")
-        continue
+        return
 
     print("[+]Done 加密完成，正在搜索！")
     print("--------------------------")
     api = "https://hunter.qianxin.com/openApi/search?api-key=" + key_data + "&search=" + search_key_word + "&page=" + page + "&page_size=10" + "&is_web=3" + "&start_time=2021-01-01&end_time=" + time_today  # api接口域名
-    response = requests.get(api)
-    raw_data = response.json()
+    async with aiohttp.ClientSession() as session:
+        async with session.get(api) as response:
+            raw_data = await response.json()
 
     if not raw_data['data']['arr']:
         print("Error 数据为空！")
-        continue
+        return
 
     print("[+]数据搜索完成！")
     print()
@@ -76,9 +89,9 @@ while True:
                 file.write("[+]地址: " + finish_data['country'] + "\n")
                 file.write("[+]状态码: " + str(finish_data['status_code']) + "\n")
                 file.write("\n")
-        print("数据已保存到文件：" + file_name)
+        print("[+]数据已保存到文件：" + file_name)
         print()
-
+    print("[+]DNS信息！")
     # NSLOOKUP
     # SOA记录
     print("--------------")
@@ -132,8 +145,24 @@ while True:
         if creation_date_match:
             creation_date = creation_date_match.group(1)
             print("创建时间:", creation_date)
+    print()
 
+    print("--------------")
+    print("[+]目录扫描中，可能会出现误报！")
+    # 目录扫描
+    with open("fuzz.txt", "r") as file:
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for line in file:
+                directory = line.strip()
+                url = domain + "/" + directory
+                task = asyncio.create_task(check_directory(session, url))
+                tasks.append(task)
+                await asyncio.sleep(0.1)  # 每次扫描时间间隔为0.1秒钟
+            await asyncio.gather(*tasks)
+
+    print()
     print("[+]Done 查询结束！")
-    break
 
-sys.exit()
+
+asyncio.run(main())
