@@ -7,7 +7,26 @@ import os
 import urllib3
 import re
 import sys
+import socket
 import requests
+
+logo = '''
+
+ /$$            /$$$$$$                                                                      /$$      
+|__/           /$$__  $$                                                                    | $$      
+ /$$ /$$$$$$$ | $$  \__/  /$$$$$$           /$$$$$$$  /$$$$$$   /$$$$$$   /$$$$$$   /$$$$$$$| $$$$$$$ 
+| $$| $$__  $$| $$$$     /$$__  $$         /$$_____/ /$$__  $$ |____  $$ /$$__  $$ /$$_____/| $$__  $$
+| $$| $$  \ $$| $$_/    | $$  \ $$        |  $$$$$$ | $$$$$$$$  /$$$$$$$| $$  \__/| $$      | $$  \ $$
+| $$| $$  | $$| $$      | $$  | $$         \____  $$| $$_____/ /$$__  $$| $$      | $$      | $$  | $$
+| $$| $$  | $$| $$      |  $$$$$$/         /$$$$$$$/|  $$$$$$$|  $$$$$$$| $$      |  $$$$$$$| $$  | $$
+|__/|__/  |__/|__/       \______/  /$$$$$$|_______/  \_______/ \_______/|__/       \_______/|__/  |__/
+                                  |______/                                                            
+        by:宛平南路の光
+        github:github.com/whoiiii
+        project地址:github.com/whoiii/info_search
+'''
+print(logo)
+
 
 time_today = datetime.datetime.now().strftime('%Y-%m-%d')
 
@@ -18,11 +37,11 @@ async def check_directory(session, url):
     while retry_count < max_retries:
         try:
             qheaders = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64)", "Connection": "close"}
-            async with session.get('https://' + url, headers=qheaders, timeout=10, allow_redirects=False) as response:
+            async with session.get('https://' + url, headers=qheaders, timeout=100, allow_redirects=False) as response:
                 if response.status == 200:
-                    print("[+]目录存在：" + url)
+                    print("[+]目录存在：" + url + "   状态码:200")
                 elif response.status == 302:
-                    print("[-]网页被重定向！")
+                    print("[-]网页被重定向！ 域名："+ url + "  状态码:302")
                 else:
                     print("[-]网页不存在！")
             return  # 成功则返回
@@ -76,6 +95,7 @@ async def main():
     print()
 
     # 美化数据
+    ip_list = []  # 存储IP信息
     for finish_data in raw_data['data']['arr']:
         print("[+]域名: " + finish_data['url'])
         print("[+]IP: " + finish_data['ip'])
@@ -85,6 +105,12 @@ async def main():
         print("[+]地址: " + finish_data['country'])
         print("[+]状态码: " + str(finish_data['status_code']))
         print()
+        ip_list.append(finish_data['ip'])  # 将IP信息添加到列表中
+
+    ip_list = list(set(ip_list))  # 去重
+    print("去重后的IP信息:")
+    for ip in ip_list:
+        print(ip)
 
     # 保存到文件中
     result = input("数据是否保存在txt文本中？[y/n] ")
@@ -172,6 +198,18 @@ async def main():
                 tasks.append(task)
                 await asyncio.sleep(0.1)  # 每次扫描时间间隔为0.1秒钟
             await asyncio.gather(*tasks)
+    #banner
+    socket.setdefaulttimeout(2)
+    banner_socket = socket.socket()
+    banner_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    for ip in ip_list:
+        try:
+            banner_socket.connect((ip, 21))
+            banner = banner_socket.recv(1024)
+            print(ip + " banner: " + banner.decode())
+            banner_socket.close()
+        except socket.error as e:
+            print(ip + " 连接失败：" + str(e))
 
     print()
     print("[+]Done 查询结束！")
