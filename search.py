@@ -37,7 +37,7 @@ async def check_directory(session, url):
     while retry_count < max_retries:
         try:
             qheaders = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64)", "Connection": "close"}
-            async with session.get('https://' + url, headers=qheaders, timeout=100, allow_redirects=False) as response:
+            async with session.get('http://' + url, headers=qheaders, timeout=100, allow_redirects=False) as response:
                 if response.status == 200:
                     print("[+]目录存在：" + url + "   状态码:200")
                 elif response.status == 302:
