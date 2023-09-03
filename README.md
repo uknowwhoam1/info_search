@@ -10,4 +10,4 @@ Hunter奇安信的api_key存放在key.txt中！
 
 目录扫描可能存在误报，目前能识别重定向了
 
-![Uploading 屏幕截图(865).png…]()
+![屏幕截图(865)](https://github.com/whoiiii/info_search/assets/99535521/7642905c-c497-4c2d-9d5a-d8896d3d3a98)
