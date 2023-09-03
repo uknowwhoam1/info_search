@@ -1,3 +1,4 @@
+from pydoc import resolve
 import aiohttp
 import asyncio
 import base64
@@ -12,13 +13,24 @@ time_today = datetime.datetime.now().strftime('%Y-%m-%d')
 
 
 async def check_directory(session, url):
-    try:
-        qheaders = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64)", "Connection": "close"}
-        async with session.get('https://' + url, headers=qheaders) as response:
-            if response.status == 200:
-                print("[+]目录存在：" + url)
-    except aiohttp.ClientError as e:
-        print("[-]Error 扫描错误:", str(e))
+    max_retries = 3
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            qheaders = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64)", "Connection": "close"}
+            async with session.get('https://' + url, headers=qheaders, timeout=10, allow_redirects=False) as response:
+                if response.status == 200:
+                    print("[+]目录存在：" + url)
+                elif response.status == 302:
+                    print("[-]网页被重定向！")
+                else:
+                    print("[-]网页不存在！")
+            return  # 成功则返回
+        except aiohttp.ClientConnectorError as e:
+            print("[-]Error 扫描错误:", str(e))
+            retry_count += 1
+            await asyncio.sleep(0.1)  # 添加重试延迟
+    print("[-]Error 扫描错误: 连接失败")
 
 
 async def main():
