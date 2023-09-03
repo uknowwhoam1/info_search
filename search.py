@@ -52,6 +52,19 @@ async def check_directory(session, url):
     print("[-]Error 扫描错误: 连接失败")
 
 
+# banner识别
+def get_banner(ip, port, domain):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(3)  # 设置超时时间为3秒
+            s.connect((ip, port))
+            s.send(b"GET / HTTP/1.1\r\nHost: " + domain.encode() + b"\r\n\r\n")  # 发送一个HTTP请求
+            banner = s.recv(1024).decode().strip()  # 接收响应数据，限制最大长度为1024字节
+        return banner
+    except Exception as e:
+        return str(e)
+
+
 async def main():
     # 域名获取
     domain = input("域名> ")
@@ -198,21 +211,27 @@ async def main():
                 tasks.append(task)
                 await asyncio.sleep(0.1)  # 每次扫描时间间隔为0.1秒钟
             await asyncio.gather(*tasks)
-    #banner
-    socket.setdefaulttimeout(2)
-    banner_socket = socket.socket()
-    banner_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    for ip in ip_list:
-        try:
-            banner_socket.connect((ip, 21))
-            banner = banner_socket.recv(1024)
-            print(ip + " banner: " + banner.decode())
-            banner_socket.close()
-        except socket.error as e:
-            print(ip + " 连接失败：" + str(e))
+    print()
+    print("---------------")
+    # banner
+    print("[+]banner识别")
+    print()
+
+    # 在IP列表上进行循环，逐个进行banner识别
+    for finish_data in raw_data['data']['arr']:
+        ip = finish_data['ip']
+        port = finish_data['port']
+        banner = get_banner(ip, port, domain)
+        if banner == "":
+            print("[-]未获取到banner信息！")
+            print()
+        else:
+            print("[+]获取成功！")
+            print("[+]IP: " + ip)
+            print("[+]端口: " + str(port))
+            print("[+]Banner: " + banner)
+            print()
 
     print()
     print("[+]Done 查询结束！")
-
-
 asyncio.run(main())
