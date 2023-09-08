@@ -1,3 +1,4 @@
+from http.client import responses
 from pydoc import resolve
 import aiohttp
 import asyncio
@@ -31,26 +32,26 @@ print(logo)
 time_today = datetime.datetime.now().strftime('%Y-%m-%d')
 
 
+
 async def check_directory(session, url):
     max_retries = 3
     retry_count = 0
     while retry_count < max_retries:
         try:
             qheaders = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64)", "Connection": "close"}
-            async with session.get('http://' + url, headers=qheaders, timeout=100, allow_redirects=False) as response:
+            async with session.get('http://' + url, headers=qheaders, timeout=100000, allow_redirects=False) as response:
                 if response.status == 200:
                     print("[+]目录存在：" + url + "   状态码:200")
                 elif response.status == 302:
                     print("[-]网页被重定向！ 域名："+ url + "  状态码:302")
                 else:
-                    print("[-]网页不存在！")
+                    print("[-]网页不存在！" + url + "  状态码:404")
             return  # 成功则返回
         except aiohttp.ClientConnectorError as e:
             print("[-]Error 扫描错误:", str(e))
             retry_count += 1
             await asyncio.sleep(0.1)  # 添加重试延迟
     print("[-]Error 扫描错误: 连接失败")
-
 
 # banner识别
 def get_banner(ip, port, domain):
@@ -63,7 +64,6 @@ def get_banner(ip, port, domain):
         return banner
     except Exception as e:
         return str(e)
-
 
 async def main():
     # 域名获取
@@ -117,6 +117,12 @@ async def main():
         print("[+]备案号: " + finish_data['number'])
         print("[+]地址: " + finish_data['country'])
         print("[+]状态码: " + str(finish_data['status_code']))
+
+        # 提取Server信息
+        server = finish_data.get('server')
+        if server:
+            print("[+]Server: " + server)
+
         print()
         ip_list.append(finish_data['ip'])  # 将IP信息添加到列表中
 
@@ -139,6 +145,12 @@ async def main():
                 file.write("[+]备案号: " + finish_data['number'] + "\n")
                 file.write("[+]地址: " + finish_data['country'] + "\n")
                 file.write("[+]状态码: " + str(finish_data['status_code']) + "\n")
+
+                # 提取Server信息
+                server = finish_data.get('server')
+                if server:
+                    file.write("[+]Server: " + server + "\n")
+
                 file.write("\n")
         print("[+]数据已保存到文件：" + file_name)
         print()
@@ -201,7 +213,7 @@ async def main():
     print("--------------")
     print("[+]目录扫描中，可能会出现误报！")
     # 目录扫描
-    with open("fuzz.txt", "r") as file:
+    with open(r"fuzz.txt", "r") as file:
         async with aiohttp.ClientSession() as session:
             tasks = []
             for line in file:
@@ -231,7 +243,23 @@ async def main():
             print("[+]端口: " + str(port))
             print("[+]Banner: " + banner)
             print()
+    
+    print("---------------")
+    print("指纹识别: ")
+    # 添加指纹识别代码
+    for finish_data in raw_data['data']['arr']:
+        ip = finish_data['ip']
+        port = finish_data['port']
+        banner = get_banner(ip, port, domain)
+        if banner != "":
+            server_info = re.search(r"Server: (.+)", banner)
+            if server_info:
+                print("[+]IP: " + ip)
+                print("[+]端口: " + str(port))
+                print("[+]Server: " + server_info.group(1))
+                print()
 
     print()
     print("[+]Done 查询结束！")
+
 asyncio.run(main())
