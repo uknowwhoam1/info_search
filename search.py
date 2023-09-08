@@ -30,9 +30,6 @@ print(logo)
 
 
 time_today = datetime.datetime.now().strftime('%Y-%m-%d')
-
-
-
 async def check_directory(session, url):
     max_retries = 3
     retry_count = 0
@@ -47,7 +44,7 @@ async def check_directory(session, url):
                 else:
                     print("[-]网页不存在！" + url + "  状态码:404")
             return  # 成功则返回
-        except aiohttp.ClientConnectorError as e:
+        except Exception as e:
             print("[-]Error 扫描错误:", str(e))
             retry_count += 1
             await asyncio.sleep(0.1)  # 添加重试延迟
@@ -262,4 +259,5 @@ async def main():
     print()
     print("[+]Done 查询结束！")
 
-asyncio.run(main())
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
